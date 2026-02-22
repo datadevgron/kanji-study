@@ -1,4 +1,4 @@
-# 漢字 Kanji Study App
+# 漢字 Kanji Ganbare App
 
 A React app for studying Japanese kanji through vocabulary, not just rote memorisation.
 
