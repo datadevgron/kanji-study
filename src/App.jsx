@@ -265,7 +265,7 @@ export default function App(){
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text'
             }}>
-              漢字 Kanji Study
+              漢字 Kanji Ganbare
             </div>
             <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
               <span style={{fontSize: 12, color: '#9ca3af'}}>

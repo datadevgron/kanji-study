@@ -91,7 +91,7 @@ export default function Auth({ onAuth }) {
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text'
           }}>
-            Kanji Study
+            Kanji Ganbare
           </div>
           <div style={{
             fontSize: 13,
