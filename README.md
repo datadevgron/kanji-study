@@ -1,10 +1,11 @@
-# Kanji React App (minimal)
+# Kanji React App
 
-This is a small demo React app (Vite) to study kanji. It shows kanji grouped by JLPT level, a flashcard study mode, and a quiz mode.
+This is a React app (Vite) to study kanji. It shows kanji grouped by JLPT level, a flashcard study mode and a quiz mode.
 
 Features implemented:
 - Homepage: kanji grouped by JLPT level (uses `kanjiapi.dev` to fetch details)
 - Study (flashcards): first card shows the kanji, meaning, onyomi/kunyomi; subsequent cards show vocabulary with flip to reveal reading + meaning
+- Practise writing
 - Quiz: typed answers for kanji → meaning, vocab → reading, vocab → meaning
 
 Two kanji are included as a starter: `日` and `水`. Vocabulary for these kanji is in `src/data/vocab.js`.
