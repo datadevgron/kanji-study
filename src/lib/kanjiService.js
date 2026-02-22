@@ -2,7 +2,7 @@
  * SUPABASE DATA SERVICE
  * 
  * This module provides functions to fetch kanji, vocab, and mnemonics
- * from your Supabase database.
+ * from the Supabase database.
  */
 
 import { supabase } from './supabase'
