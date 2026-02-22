@@ -63,6 +63,8 @@ export default function Home({
   studyQueue
 }){
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedKanji, setSelectedKanji] = useState(new Set())
   
   // Build a map of kanji to their study queue item for quick lookup
   const studyQueueMap = new Map()
@@ -138,8 +140,85 @@ export default function Home({
     return levelKanji.length > 0 && levelKanji.every(k => knownKanji.has(k))
   }
 
+  // Select mode functions
+  const enterSelectMode = () => {
+    setSelectMode(true)
+    setSelectedKanji(new Set(knownKanji)) // Start with currently known kanji selected
+  }
+
+  const exitSelectMode = () => {
+    setSelectMode(false)
+    setSelectedKanji(new Set())
+  }
+
+  const toggleSelectKanji = (k) => {
+    setSelectedKanji(prev => {
+      const next = new Set(prev)
+      if (next.has(k)) next.delete(k)
+      else next.add(k)
+      return next
+    })
+  }
+
+  const confirmSelection = () => {
+    setKnownKanji(selectedKanji)
+    setSelectMode(false)
+    setSelectedKanji(new Set())
+  }
+
   return (
     <div>
+      {/* Select Mode Header */}
+      {selectMode && (
+        <div style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+          background: 'linear-gradient(135deg, #0d9488, #14b8a6)',
+          padding: '12px 16px',
+          marginBottom: 16,
+          borderRadius: 12,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxShadow: '0 4px 12px rgba(13,148,136,0.3)'
+        }}>
+          <button
+            onClick={exitSelectMode}
+            style={{
+              background: 'rgba(255,255,255,0.2)',
+              border: 'none',
+              color: 'white',
+              padding: '8px 16px',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 500,
+              fontSize: 14
+            }}
+          >
+            Cancel
+          </button>
+          <div style={{ color: 'white', fontWeight: 600, fontSize: 14 }}>
+            {selectedKanji.size} selected
+          </div>
+          <button
+            onClick={confirmSelection}
+            style={{
+              background: 'white',
+              border: 'none',
+              color: '#0d9488',
+              padding: '8px 16px',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: 14
+            }}
+          >
+            Done ✓
+          </button>
+        </div>
+      )}
+
       {/* Search Bar */}
       <div style={{
         marginBottom: 16,
@@ -480,6 +559,31 @@ export default function Home({
             </svg>
             Review Now {studyProgress?.overdueCount > 0 && `(${studyProgress.overdueCount})`}
           </button>
+
+          <button
+            onClick={enterSelectMode}
+            style={{
+              flex: '1 1 140px',
+              padding: '12px 16px',
+              background: 'white',
+              border: '1px solid rgba(16,185,129,0.3)',
+              borderRadius: 10,
+              fontSize: 13,
+              fontWeight: 600,
+              color: '#10b981',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 11 12 14 22 4"/>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+            Mark Known
+          </button>
         </div>
       </div>
 
@@ -540,24 +644,72 @@ export default function Home({
                 }}>
                   JLPT {level === 'unknown' ? '—' : level}
                   <span style={{fontSize: 11, marginLeft: 8, color: 'var(--muted)', fontWeight: 400}}>
-                    ({levelKnownCount}/{grouped[level].length})
+                    {selectMode 
+                      ? `(${grouped[level].filter(k => selectedKanji.has(k)).length}/${grouped[level].length} selected)`
+                      : `(${levelKnownCount}/${grouped[level].length})`
+                    }
                   </span>
                 </div>
-                <button 
-                  onClick={() => toggleLevelKnown(level)}
-                  style={{
-                    fontSize: 11,
-                    padding: '4px 10px',
-                    borderRadius: 6,
-                    border: levelAllKnown ? '1px solid #10b981' : '1px solid rgba(0,0,0,0.1)',
-                    background: levelAllKnown ? 'rgba(16,185,129,0.1)' : 'transparent',
-                    color: levelAllKnown ? '#059669' : 'var(--muted)',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  {levelAllKnown ? '✓ All Known' : 'Mark All Known'}
-                </button>
+                {selectMode ? (
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button 
+                      onClick={() => {
+                        setSelectedKanji(prev => {
+                          const next = new Set(prev)
+                          grouped[level].forEach(k => next.add(k))
+                          return next
+                        })
+                      }}
+                      style={{
+                        fontSize: 11,
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        border: '1px solid rgba(16,185,129,0.3)',
+                        background: 'rgba(16,185,129,0.1)',
+                        color: '#059669',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Select All
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setSelectedKanji(prev => {
+                          const next = new Set(prev)
+                          grouped[level].forEach(k => next.delete(k))
+                          return next
+                        })
+                      }}
+                      style={{
+                        fontSize: 11,
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        border: '1px solid rgba(0,0,0,0.1)',
+                        background: 'transparent',
+                        color: 'var(--muted)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Deselect
+                    </button>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => toggleLevelKnown(level)}
+                    style={{
+                      fontSize: 11,
+                      padding: '4px 10px',
+                      borderRadius: 6,
+                      border: levelAllKnown ? '1px solid #10b981' : '1px solid rgba(0,0,0,0.1)',
+                      background: levelAllKnown ? 'rgba(16,185,129,0.1)' : 'transparent',
+                      color: levelAllKnown ? '#059669' : 'var(--muted)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {levelAllKnown ? '✓ All Known' : 'Mark All Known'}
+                  </button>
+                )}
               </div>
               
               {/* Horizontal row of square kanji boxes - using flex wrap */}
@@ -568,6 +720,7 @@ export default function Home({
               }}>
                 {grouped[level].map(k => {
                   const isKnown = knownKanji.has(k)
+                  const isSelected = selectMode && selectedKanji.has(k)
                   const queueItem = studyQueueMap.get(k)
                   const isInQueue = !!queueItem
                   const stageInfo = queueItem ? getStageInfo(queueItem.srs_stage) : null
@@ -575,7 +728,7 @@ export default function Home({
                   return (
                     <div 
                       key={k} 
-                      onClick={() => onSelect(k)}
+                      onClick={() => selectMode ? toggleSelectKanji(k) : onSelect(k)}
                       style={{
                         width: 70,
                         height: 70,
@@ -583,16 +736,20 @@ export default function Home({
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        background: isKnown 
-                          ? 'rgba(16,185,129,0.06)' 
-                          : isInQueue 
-                            ? 'rgba(139,92,246,0.04)' 
-                            : 'white',
-                        border: isKnown 
-                          ? '2px solid #10b981' 
-                          : isInQueue 
-                            ? '2px solid rgba(139,92,246,0.4)' 
-                            : '1px solid rgba(0,0,0,0.08)',
+                        background: selectMode
+                          ? (isSelected ? 'rgba(16,185,129,0.15)' : 'white')
+                          : (isKnown 
+                            ? 'rgba(16,185,129,0.06)' 
+                            : isInQueue 
+                              ? 'rgba(139,92,246,0.04)' 
+                              : 'white'),
+                        border: selectMode
+                          ? (isSelected ? '2px solid #10b981' : '2px dashed rgba(0,0,0,0.15)')
+                          : (isKnown 
+                            ? '2px solid #10b981' 
+                            : isInQueue 
+                              ? '2px solid rgba(139,92,246,0.4)' 
+                              : '1px solid rgba(0,0,0,0.08)'),
                         borderRadius: 12,
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
@@ -609,8 +766,29 @@ export default function Home({
                         e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'
                       }}
                     >
+                      {/* Selection Checkmark in Select Mode */}
+                      {selectMode && (
+                        <div style={{
+                          position: 'absolute',
+                          top: 4,
+                          right: 4,
+                          width: 18,
+                          height: 18,
+                          borderRadius: '50%',
+                          background: isSelected ? '#10b981' : 'rgba(0,0,0,0.08)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontSize: 11,
+                          fontWeight: 700
+                        }}>
+                          {isSelected && '✓'}
+                        </div>
+                      )}
+                      
                       {/* SRS Stage Badge */}
-                      {isInQueue && !isKnown && (
+                      {!selectMode && isInQueue && !isKnown && (
                         <div style={{
                           position: 'absolute',
                           top: 3,
@@ -629,7 +807,9 @@ export default function Home({
                       <div style={{
                         fontSize: 32, 
                         fontWeight: 500,
-                        color: isKnown ? '#059669' : isInQueue ? '#6d28d9' : '#1f2937'
+                        color: selectMode 
+                          ? (isSelected ? '#059669' : '#1f2937')
+                          : (isKnown ? '#059669' : isInQueue ? '#6d28d9' : '#1f2937')
                       }}>
                         {k}
                       </div>
