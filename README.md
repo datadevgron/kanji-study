@@ -28,5 +28,4 @@ npm run dev
 Open the printed localhost URL in your browser.
 
 Notes:
-- The app fetches kanji details from https://kanjiapi.dev; if unavailable, minimal fallback data is used.
-- For a larger set of kanji, expand the START_KANJI list in `src/App.jsx` and add vocabulary to `src/data/vocab.js`.
+- The app fetches kanji details from https://kanjiapi.dev (used to), now it's from jisho API
