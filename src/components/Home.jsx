@@ -63,6 +63,7 @@ export default function Home({
   studyQueue
 }){
   const [searchQuery, setSearchQuery] = useState('')
+  const [editingLevel, setEditingLevel] = useState(null) // Which level is in "mark known" mode
   
   // Build a map of kanji to their study queue item for quick lookup
   const studyQueueMap = new Map()
@@ -543,21 +544,55 @@ export default function Home({
                     ({levelKnownCount}/{grouped[level].length})
                   </span>
                 </div>
-                <button 
-                  onClick={() => toggleLevelKnown(level)}
-                  style={{
-                    fontSize: 11,
-                    padding: '4px 10px',
-                    borderRadius: 6,
-                    border: levelAllKnown ? '1px solid #10b981' : '1px solid rgba(0,0,0,0.1)',
-                    background: levelAllKnown ? 'rgba(16,185,129,0.1)' : 'transparent',
-                    color: levelAllKnown ? '#059669' : 'var(--muted)',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  {levelAllKnown ? '✓ All Known' : 'Mark All Known'}
-                </button>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {editingLevel === level ? (
+                    <button 
+                      onClick={() => setEditingLevel(null)}
+                      style={{
+                        fontSize: 11,
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        border: '1px solid #0d9488',
+                        background: '#0d9488',
+                        color: 'white',
+                        cursor: 'pointer',
+                        fontWeight: 600
+                      }}
+                    >
+                      Done
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => setEditingLevel(level)}
+                      style={{
+                        fontSize: 11,
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        border: '1px solid rgba(0,0,0,0.1)',
+                        background: 'transparent',
+                        color: 'var(--muted)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Mark Known
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => toggleLevelKnown(level)}
+                    style={{
+                      fontSize: 11,
+                      padding: '4px 10px',
+                      borderRadius: 6,
+                      border: levelAllKnown ? '1px solid #10b981' : '1px solid rgba(0,0,0,0.1)',
+                      background: levelAllKnown ? 'rgba(16,185,129,0.1)' : 'transparent',
+                      color: levelAllKnown ? '#059669' : 'var(--muted)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {levelAllKnown ? '✓ All Known' : 'Mark All Known'}
+                  </button>
+                </div>
               </div>
               
               {/* Horizontal row of square kanji boxes - using flex wrap */}
@@ -571,11 +606,12 @@ export default function Home({
                   const queueItem = studyQueueMap.get(k)
                   const isInQueue = !!queueItem
                   const stageInfo = queueItem ? getStageInfo(queueItem.srs_stage) : null
+                  const isEditing = editingLevel === level
                   
                   return (
                     <div 
                       key={k} 
-                      onClick={() => onSelect(k)}
+                      onClick={(e) => isEditing ? toggleKnown(k, e) : onSelect(k)}
                       style={{
                         width: 70,
                         height: 70,
@@ -588,11 +624,13 @@ export default function Home({
                           : isInQueue 
                             ? 'rgba(139,92,246,0.04)' 
                             : 'white',
-                        border: isKnown 
-                          ? '2px solid #10b981' 
-                          : isInQueue 
-                            ? '2px solid rgba(139,92,246,0.4)' 
-                            : '1px solid rgba(0,0,0,0.08)',
+                        border: isEditing
+                          ? (isKnown ? '2px solid #10b981' : '2px dashed rgba(0,0,0,0.2)')
+                          : (isKnown 
+                            ? '2px solid #10b981' 
+                            : isInQueue 
+                              ? '2px solid rgba(139,92,246,0.4)' 
+                              : '1px solid rgba(0,0,0,0.08)'),
                         borderRadius: 12,
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
