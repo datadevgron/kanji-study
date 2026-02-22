@@ -58,6 +58,7 @@ export default function Home({
   onOpenSettings,
   onOpenStudyPlan,
   onOpenReview,
+  onOpenStudySession,
   studyProgress,
   studyQueue
 }){
@@ -328,69 +329,69 @@ export default function Home({
         {/* Stats Row */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-          gap: 12,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+          gap: 10,
           marginBottom: 16
         }}>
           <div style={{
             background: 'white',
-            padding: '14px 16px',
+            padding: '12px 14px',
             borderRadius: 10,
             boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
           }}>
             <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               Weekly Goal
             </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: '#0d9488' }}>
-              {studyProgress?.weeklyGoal || 10}
-            </div>
-            <div style={{ fontSize: 10, color: '#9ca3af' }}>kanji/week</div>
-          </div>
-          
-          <div style={{
-            background: 'white',
-            padding: '14px 16px',
-            borderRadius: 10,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-          }}>
-            <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              This Week
-            </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: '#3b82f6' }}>
-              {studyProgress?.learnedThisWeek || 0}
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#0d9488' }}>
+              {studyProgress?.learnedThisWeek || 0}/{studyProgress?.weeklyGoal || 10}
             </div>
             <div style={{ fontSize: 10, color: '#9ca3af' }}>learned</div>
           </div>
 
           <div style={{
             background: 'white',
-            padding: '14px 16px',
+            padding: '12px 14px',
             borderRadius: 10,
             boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
           }}>
             <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              In Study Queue
+              New to Learn
             </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: '#8b5cf6' }}>
-              {studyProgress?.totalInQueue || 0}
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#3b82f6' }}>
+              {studyProgress?.newKanjiDue || 0}
             </div>
-            <div style={{ fontSize: 10, color: '#9ca3af' }}>kanji</div>
+            <div style={{ fontSize: 10, color: '#9ca3af' }}>this week</div>
           </div>
 
           <div style={{
-            background: studyProgress?.dueForReview > 0 ? 'rgba(245,158,11,0.1)' : 'white',
-            padding: '14px 16px',
+            background: (studyProgress?.overdueCount || 0) > 0 ? 'rgba(245,158,11,0.1)' : 'white',
+            padding: '12px 14px',
             borderRadius: 10,
             boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-            border: studyProgress?.dueForReview > 0 ? '1px solid rgba(245,158,11,0.3)' : 'none'
+            border: (studyProgress?.overdueCount || 0) > 0 ? '1px solid rgba(245,158,11,0.3)' : 'none'
           }}>
             <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Due for Review
+              Due Review
             </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: '#f59e0b' }}>
-              {studyProgress?.dueForReview || 0}
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#f59e0b' }}>
+              {studyProgress?.overdueCount || 0}
             </div>
-            <div style={{ fontSize: 10, color: '#9ca3af' }}>kanji</div>
+            <div style={{ fontSize: 10, color: '#9ca3af' }}>overdue</div>
+          </div>
+
+          <div style={{
+            background: 'white',
+            padding: '12px 14px',
+            borderRadius: 10,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+          }}>
+            <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              In Queue
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#8b5cf6' }}>
+              {studyProgress?.totalInQueue || 0}
+            </div>
+            <div style={{ fontSize: 10, color: '#9ca3af' }}>total</div>
           </div>
         </div>
 
@@ -424,20 +425,48 @@ export default function Home({
           </button>
           
           <button
-            onClick={onOpenReview}
-            disabled={!studyProgress?.dueForReview}
+            onClick={onOpenStudySession}
+            disabled={!studyProgress?.dueForReview && !studyProgress?.totalInQueue}
             style={{
               flex: '1 1 140px',
               padding: '12px 16px',
-              background: studyProgress?.dueForReview > 0 
+              background: (studyProgress?.dueForReview > 0 || studyProgress?.totalInQueue > 0)
+                ? 'linear-gradient(135deg, #0d9488, #0f766e)' 
+                : 'rgba(0,0,0,0.04)',
+              border: 'none',
+              borderRadius: 10,
+              fontSize: 13,
+              fontWeight: 600,
+              color: (studyProgress?.dueForReview > 0 || studyProgress?.totalInQueue > 0) ? 'white' : '#9ca3af',
+              cursor: (studyProgress?.dueForReview > 0 || studyProgress?.totalInQueue > 0) ? 'pointer' : 'not-allowed',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+            Study
+          </button>
+          
+          <button
+            onClick={onOpenReview}
+            disabled={!studyProgress?.overdueCount}
+            style={{
+              flex: '1 1 140px',
+              padding: '12px 16px',
+              background: studyProgress?.overdueCount > 0 
                 ? 'linear-gradient(135deg, #f59e0b, #d97706)' 
                 : 'rgba(0,0,0,0.04)',
               border: 'none',
               borderRadius: 10,
               fontSize: 13,
               fontWeight: 600,
-              color: studyProgress?.dueForReview > 0 ? 'white' : '#9ca3af',
-              cursor: studyProgress?.dueForReview > 0 ? 'pointer' : 'not-allowed',
+              color: studyProgress?.overdueCount > 0 ? 'white' : '#9ca3af',
+              cursor: studyProgress?.overdueCount > 0 ? 'pointer' : 'not-allowed',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -449,7 +478,7 @@ export default function Home({
               <polyline points="1 20 1 14 7 14"/>
               <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
             </svg>
-            Review Now {studyProgress?.dueForReview > 0 && `(${studyProgress.dueForReview})`}
+            Review Now {studyProgress?.overdueCount > 0 && `(${studyProgress.overdueCount})`}
           </button>
         </div>
       </div>

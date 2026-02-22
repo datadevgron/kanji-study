@@ -1,4 +1,5 @@
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useMemo, useRef, useState, useEffect } from 'react'
+import { updateReview } from '../lib/studyService'
 
 // Romaji to Hiragana conversion map
 const ROMAJI_TO_HIRAGANA = {
@@ -96,7 +97,7 @@ function itemKey(it){
   return `${it.type}|${it.prompt}|${(it.answers||[]).join(',')}`
 }
 
-export default function Quiz({kanji, data, words, onBackToStudy, onBackToHome}){
+export default function Quiz({kanji, data, words, userId, studySessionMode, onBackToStudy, onBackToHome}){
   const [started, setStarted] = useState(false)
   
   // Build quiz items: 1) kanji -> meaning, then for each word: word -> reading, word -> meaning
@@ -122,12 +123,27 @@ export default function Quiz({kanji, data, words, onBackToStudy, onBackToHome}){
   const [results, setResults] = useState({})
   const [pass, setPass] = useState(0)
   const [finished, setFinished] = useState(false)
+  const [srsSaved, setSrsSaved] = useState(false)
 
   const cur = queue[index]
   
   // For reading questions, convert romaji input to hiragana
   const isReadingQuestion = cur && cur.type === 'word-reading'
   const displayInput = isReadingQuestion ? romajiToHiragana(input) : input
+  
+  // Save to SRS when quiz finishes in study session mode
+  useEffect(() => {
+    async function saveToSRS() {
+      if (finished && studySessionMode && userId && !srsSaved && responses.length > 0) {
+        const correctResponses = responses.filter(r => r.ok)
+        const score = Math.round((correctResponses.length / responses.length) * 100) || 0
+        const passed = score >= 70
+        await updateReview(userId, kanji, passed)
+        setSrsSaved(true)
+      }
+    }
+    saveToSRS()
+  }, [finished, studySessionMode, userId, kanji, responses, srsSaved])
 
   function check(){
     if(!cur) return
@@ -179,6 +195,7 @@ export default function Quiz({kanji, data, words, onBackToStudy, onBackToHome}){
     setFinished(false)
     setResponses([])
     setStarted(true)
+    setSrsSaved(false)
   }
 
   function endQuiz(){
@@ -261,7 +278,18 @@ export default function Quiz({kanji, data, words, onBackToStudy, onBackToHome}){
 
         {/* Action Buttons */}
         <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap',marginBottom:32}}>
-          {onBackToHome && <button className="btn" onClick={onBackToHome}>Back to Home</button>}
+          {studySessionMode && onBackToStudy ? (
+            <button 
+              className="btn" 
+              onClick={onBackToStudy}
+              disabled={!srsSaved}
+              style={{ opacity: srsSaved ? 1 : 0.7 }}
+            >
+              {srsSaved ? 'Continue to Next Kanji →' : 'Saving progress...'}
+            </button>
+          ) : (
+            onBackToHome && <button className="btn" onClick={onBackToHome}>Back to Home</button>
+          )}
           <button className="btn secondary" onClick={restart}>Try Again</button>
           {uniqueIncorrect.length > 0 && (
             <button className="btn secondary" onClick={retryIncorrect}>

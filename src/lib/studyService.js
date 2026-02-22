@@ -340,9 +340,11 @@ export async function getStudyProgress(userId, weeklyGoal = 10) {
   return {
     totalInQueue: queue.length,
     learnedThisWeek,
+    weeklyGoal,
     dueForReview: dueNow,
     byStage,
     newKanjiAvailable: newKanji.length,
+    newKanjiDue: newKanjiDue,
     overdueCount: overdueKanji.length
   }
 }

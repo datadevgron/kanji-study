@@ -4,7 +4,7 @@ import Quiz from './Quiz'
 import WritingPractice from './WritingPractice'
 import { fetchVocabByCharacter } from '../lib/kanjiService'
 
-export default function KanjiPage({kanji, data, userLevel, kanjiData, userId, onBack, onDataUpdate}){
+export default function KanjiPage({kanji, data, userLevel, kanjiData, userId, onBack, onDataUpdate, studySessionMode, onQuizComplete}){
   const [mode, setMode] = useState('study') // 'study' | 'quiz' | 'write'
   const [words, setWords] = useState([])
   const [loadingVocab, setLoadingVocab] = useState(true)
@@ -24,6 +24,11 @@ export default function KanjiPage({kanji, data, userLevel, kanjiData, userId, on
     }
     loadVocab()
   }, [kanji, userLevel, knownKanjiChars])
+  
+  // Reset to study mode when kanji changes (important for study session)
+  useEffect(() => {
+    setMode('study')
+  }, [kanji])
 
   // Handle vocab meaning update
   function handleVocabUpdate(word, reading, newMeaning) {
@@ -37,7 +42,9 @@ export default function KanjiPage({kanji, data, userLevel, kanjiData, userId, on
   return (
     <div>
       <div style={{display:'flex',gap:12,alignItems:'center',marginBottom:12}}>
-        <button className="btn secondary" onClick={onBack}>← Back</button>
+        <button className="btn secondary" onClick={onBack}>
+          {studySessionMode ? (mode === 'quiz' ? '← Back to Study' : '→ Next Kanji') : '← Back'}
+        </button>
         <div style={{fontSize:18,fontWeight:700}}>{kanji} — {mode}</div>
         <div style={{marginLeft:'auto', display:'flex', gap:8}}>
           <button 
@@ -64,7 +71,7 @@ export default function KanjiPage({kanji, data, userLevel, kanjiData, userId, on
           <>
             {mode === 'study' && <Flashcards kanji={kanji} data={data} words={words} userId={userId} onStartQuiz={()=>setMode('quiz')} onStartWrite={()=>setMode('write')} onDataUpdate={onDataUpdate} onVocabUpdate={handleVocabUpdate} />}
             {mode === 'write' && <WritingPractice kanji={kanji} onBack={()=>setMode('study')} />}
-            {mode === 'quiz' && <Quiz kanji={kanji} data={data} words={words} onBackToStudy={()=>setMode('study')} onBackToHome={onBack} />}
+            {mode === 'quiz' && <Quiz kanji={kanji} data={data} words={words} userId={userId} studySessionMode={studySessionMode} onBackToStudy={studySessionMode ? onQuizComplete : ()=>setMode('study')} onBackToHome={onBack} />}
           </>
         )}
       </div>

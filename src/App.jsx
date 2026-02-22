@@ -8,7 +8,7 @@ import ReviewQuiz from './components/ReviewQuiz'
 import { fetchKanjiByLevels, fetchKanjiList } from './lib/kanjiService'
 import { getSession, signOut, onAuthStateChange } from './lib/authService'
 import { loadUserProfile, saveUserProfile, loadKnownKanji, saveKnownKanji } from './lib/userDataService'
-import { loadStudySettings, loadStudyQueue, getStudyProgress } from './lib/studyService'
+import { loadStudySettings, loadStudyQueue, getStudyProgress, getDueForReview } from './lib/studyService'
 import './index.css'
 
 const JLPT_LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1']
@@ -30,6 +30,13 @@ export default function App(){
   const [showSettings, setShowSettings] = useState(false)
   const [showStudyPlan, setShowStudyPlan] = useState(false)
   const [showReviewQuiz, setShowReviewQuiz] = useState(false)
+  
+  // Study session state (using existing KanjiPage)
+  const [studySessionMode, setStudySessionMode] = useState(false)
+  const [studySessionKanji, setStudySessionKanji] = useState([])
+  const [studySessionIndex, setStudySessionIndex] = useState(0)
+  const [studySessionCompleted, setStudySessionCompleted] = useState(new Set())
+  
   const [studySettings, setStudySettings] = useState({ weekly_goal: 10, srs_intervals: [1,1,2,3,5,8,14] })
   const [studyQueue, setStudyQueue] = useState([])
   const [studyProgress, setStudyProgress] = useState(null)
@@ -357,23 +364,158 @@ export default function App(){
             onOpenSettings={() => setShowSettings(true)}
             onOpenStudyPlan={() => setShowStudyPlan(true)}
             onOpenReview={() => setShowReviewQuiz(true)}
+            onOpenStudySession={async () => {
+              // Get kanji due for study (new + due for review, up to weekly goal)
+              const dueKanji = await getDueForReview(user.id, studySettings.weekly_goal)
+              if (dueKanji.length > 0) {
+                setStudySessionKanji(dueKanji.map(k => k.kanji_character))
+                setStudySessionIndex(0)
+                setStudySessionCompleted(new Set())
+                setStudySessionMode(true)
+                setSelected(dueKanji[0].kanji_character)
+              }
+            }}
             studyProgress={studyProgress}
             studyQueue={studyQueue}
           />
         )
       )}
       {selected && (
-        <KanjiPage 
-          kanji={selected} 
-          data={kanjiData[selected]} 
-          userLevel={userLevel} 
-          kanjiData={kanjiData}
-          userId={user.id}
-          onBack={() => setSelected(null)}
-          onDataUpdate={(char, newData) => {
-            setKanjiData(prev => ({...prev, [char]: newData}))
-          }}
-        />
+        <>
+          {/* Study session progress bar */}
+          {studySessionMode && (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(13,148,136,0.1), rgba(20,184,166,0.05))',
+              borderRadius: 12,
+              padding: '12px 16px',
+              marginBottom: 16,
+              border: '1px solid rgba(13,148,136,0.2)'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                marginBottom: 10
+              }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#0d9488' }}>
+                  Study Session: {studySessionIndex + 1} / {studySessionKanji.length}
+                </div>
+                <button
+                  onClick={() => {
+                    setStudySessionMode(false)
+                    setStudySessionKanji([])
+                    setStudySessionIndex(0)
+                    setStudySessionCompleted(new Set())
+                    setSelected(null)
+                    refreshStudyProgress()
+                  }}
+                  style={{
+                    padding: '4px 12px',
+                    background: 'white',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 6,
+                    fontSize: 12,
+                    color: '#64748b',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Exit Session
+                </button>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {studySessionKanji.map((k, idx) => {
+                  const isCompleted = studySessionCompleted.has(k)
+                  const isCurrent = idx === studySessionIndex
+                  return (
+                    <div
+                      key={k}
+                      onClick={() => {
+                        if (idx <= studySessionIndex || isCompleted) {
+                          setStudySessionIndex(idx)
+                          setSelected(k)
+                        }
+                      }}
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 6,
+                        border: isCurrent ? '2px solid #0d9488' : '1px solid #e2e8f0',
+                        background: isCompleted ? '#d1fae5' : isCurrent ? '#f0fdfa' : 'white',
+                        color: isCompleted ? '#059669' : isCurrent ? '#0d9488' : '#64748b',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 14,
+                        cursor: (idx <= studySessionIndex || isCompleted) ? 'pointer' : 'default',
+                        opacity: (idx <= studySessionIndex || isCompleted) ? 1 : 0.5
+                      }}
+                    >
+                      {k}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+          
+          <KanjiPage 
+            kanji={selected} 
+            data={kanjiData[selected]} 
+            userLevel={userLevel} 
+            kanjiData={kanjiData}
+            userId={user.id}
+            onBack={() => {
+              if (studySessionMode) {
+                // Mark current as completed and move to next
+                setStudySessionCompleted(prev => new Set([...prev, selected]))
+                
+                if (studySessionIndex < studySessionKanji.length - 1) {
+                  // Move to next kanji
+                  const nextIdx = studySessionIndex + 1
+                  setStudySessionIndex(nextIdx)
+                  setSelected(studySessionKanji[nextIdx])
+                } else {
+                  // Session complete
+                  setStudySessionMode(false)
+                  setStudySessionKanji([])
+                  setStudySessionIndex(0)
+                  setStudySessionCompleted(new Set())
+                  setSelected(null)
+                  refreshStudyProgress()
+                }
+              } else {
+                setSelected(null)
+              }
+            }}
+            onDataUpdate={(char, newData) => {
+              setKanjiData(prev => ({...prev, [char]: newData}))
+            }}
+            studySessionMode={studySessionMode}
+            onQuizComplete={studySessionMode ? () => {
+              // Move to next kanji in study session
+              const newCompleted = new Set(studySessionCompleted)
+              newCompleted.add(studySessionKanji[studySessionIndex])
+              setStudySessionCompleted(newCompleted)
+              
+              // Refresh progress after each kanji quiz
+              refreshStudyProgress()
+              
+              if (studySessionIndex < studySessionKanji.length - 1) {
+                // Move to next kanji
+                const nextIndex = studySessionIndex + 1
+                setStudySessionIndex(nextIndex)
+                setSelected(studySessionKanji[nextIndex])
+              } else {
+                // Session complete!
+                setStudySessionMode(false)
+                setStudySessionKanji([])
+                setStudySessionIndex(0)
+                setStudySessionCompleted(new Set())
+                setSelected(null)
+              }
+            } : undefined}
+          />
+        </>
       )}
 
       {/* Modals */}
